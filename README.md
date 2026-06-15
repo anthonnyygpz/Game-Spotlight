@@ -79,3 +79,51 @@ Para mantener la salud de la arquitectura, cuando necesites agregar una nueva á
 4. **Estado:** Utiliza `ConsumerWidget` o `ConsumerState` provistos por Riverpod para escuchar o modificar el estado de manera reactiva.
 
 > 💡 *Tip de Arquitecto: Mantén las dependencias entre features al mínimo. Un módulo en `features/home` no debería depender directamente de implementaciones internas de `features/auth`. Comunícalos a través del estado global o el enrutamiento.*
+
+---
+
+## 🤝 ¿Cómo colaborar en este proyecto?
+
+Para asegurar un desarrollo limpio y sin conflictos, sigue estas pautas al contribuir:
+
+### 1. Estrategia de Ramas (Git Branching)
+Nunca trabajes directamente en la rama `main` o principal. Utiliza ramas separadas con los siguientes prefijos:
+- `feature/` : Para añadir nuevas funcionalidades (Ej: `feature/pantalla-ajustes`)
+- `fix/` : Para resolver errores y bugs (Ej: `fix/crash-al-inicio`)
+- `refactor/` : Para mejorar el código sin cambiar su comportamiento.
+- `docs/` : Para tareas de documentación.
+
+```bash
+git checkout -b feature/nombre-de-tu-funcionalidad
+```
+
+### 2. Convenciones de Commits (Conventional Commits)
+Mantén un historial de git limpio y legible utilizando el estándar **Conventional Commits**:
+- `feat:` Nueva característica.
+- `fix:` Corrección de bug.
+- `docs:` Cambios solo en la documentación.
+- `style:` Cambios que no afectan el significado del código (espacios, formateo, etc.).
+- `refactor:` Un cambio en el código que ni corrige un bug ni añade una característica.
+- `chore:` Tareas de mantenimiento o actualización de dependencias.
+
+**Ejemplo:**
+```bash
+git commit -m "feat: agregar nuevo botón de cerrar sesión"
+```
+
+### 3. Flujo de Pull Requests (PR)
+- Una vez finalizada tu tarea, haz push de tu rama al repositorio remoto.
+- Abre un **Pull Request (PR)** hacia la rama principal.
+- Proporciona una descripción clara en el PR indicando qué problema resuelves o qué característica añades.
+- Solicita revisión (Code Review) de otro integrante del equipo. No hagas *merge* directo de tus propios cambios.
+
+### 4. Estilo de Código y Análisis
+Antes de enviar tu código para revisión, es importante que pase las reglas de linting recomendadas por Flutter. Ejecuta estos comandos localmente:
+
+```bash
+# Dar formato al código fuente
+dart format .
+
+# Comprobar que no hay errores ni advertencias de sintaxis/estilo
+flutter analyze
+```
