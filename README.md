@@ -1,4 +1,4 @@
-# Game-Spotlight (game_tv)
+# Game-Spotlight
 
 ¡Bienvenido a **Game-Spotlight**! Este es un proyecto de Flutter diseñado con las mejores prácticas arquitectónicas para garantizar escalabilidad, mantenibilidad y un código limpio.
 
@@ -52,7 +52,7 @@ Asegúrate de cumplir con los siguientes requisitos en tu máquina:
 Si acabas de clonar el repositorio, navega a la raíz del proyecto y descarga todas las dependencias definidas en el archivo `pubspec.yaml`:
 ```bash
 # Navegar al proyecto
-cd game_tv
+cd Game-Spotlight 
 
 # Obtener dependencias de pub.dev
 flutter pub get
