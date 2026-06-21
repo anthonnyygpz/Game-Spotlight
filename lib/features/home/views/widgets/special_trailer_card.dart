@@ -4,13 +4,15 @@ import 'package:google_fonts/google_fonts.dart';
 
 class SpecialTrailerCard extends StatelessWidget {
   final bool isEntry;
+  final bool autofocus;
 
-  const SpecialTrailerCard({super.key, this.isEntry = false});
+  const SpecialTrailerCard({super.key, this.isEntry = false, this.autofocus = false});
 
   @override
   Widget build(BuildContext context) {
     return CardGlass(
       isEntry: isEntry,
+      autofocus: autofocus,
       onPressed: () {},
       enableBlur: false,
       child: Stack(

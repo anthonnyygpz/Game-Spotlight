@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:game_tv/core/widgets/line_opacity.dart';
 import 'package:game_tv/features/auth/views/widgets/card_glass.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -14,94 +15,84 @@ class GameTrailerCard extends StatelessWidget {
       onPressed: () {},
       enableBlur: false,
       bgImage: AssetImage('assets/img.png'),
-      padding: const EdgeInsets.all(10),
+      padding: const .all(10),
       borderSize: 1,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        spacing: 25,
+      child: Stack(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Badge(
-                label: Text(
-                  'NUEVO',
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                ),
-                smallSize: 2,
-                largeSize: 3,
-                backgroundColor: Colors.deepPurple,
+          Positioned(
+            top: 0,
+            left: 0,
+            child: Badge(
+              label: Text(
+                'NUEVO',
+                style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 30),
-              Text(
-                'ECPLIPSE',
-                style: GoogleFonts.cinzel(
-                  textStyle: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-
-              Row(
-                spacing: 10,
-                children: [
-                  Container(
-                    height: 2.0,
-                    width: 15.0,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          Colors.white.withValues(alpha: 0),
-                          Colors.white,
-                        ],
-                      ),
-                    ),
-                  ),
-                  Text(
-                    'REBIRTH',
-                    style: GoogleFonts.cinzel(
-                      textStyle: TextStyle(fontSize: 10, color: Colors.white),
-                    ),
-                  ),
-
-                  Container(
-                    height: 2.0, // Grosor de la línea
-                    width: 15.0, // Largo de la línea
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          Colors.white,
-                          Colors.white.withValues(alpha: 0),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 10),
-              const Text(
-                'TRAILER DE LANZAMIENTO',
-                style: TextStyle(fontSize: 10, color: Colors.white),
-              ),
-            ],
+              backgroundColor: Colors.deepPurple,
+            ),
           ),
 
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: Colors.grey.shade500.withValues(alpha: 0.2),
-                width: 1,
-              ),
-              borderRadius: const BorderRadius.all(Radius.circular(100)),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            child: Column(
+              spacing: 10,
+              crossAxisAlignment: .start,
+              children: [
+                Column(
+                  mainAxisSize: .min,
+                  crossAxisAlignment: .center,
+                  children: [
+                    Text(
+                      'ECPLIPSE',
+                      style: GoogleFonts.cinzel(
+                        textStyle: TextStyle(
+                          fontSize: 24,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
+                    Row(
+                      spacing: 10,
+                      mainAxisSize: .min,
+                      children: [
+                        const LineOpacity(flipX: true),
+                        Text(
+                          'REBIRTH',
+                          style: GoogleFonts.cinzel(
+                            textStyle: TextStyle(
+                              fontSize: 10,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const LineOpacity(),
+                      ],
+                    ),
+                  ],
+                ),
+
+                const Text(
+                  'TRAILER DE LANZAMIENTO',
+                  style: TextStyle(fontSize: 12, color: Colors.white),
+                ),
+              ],
             ),
-            child: const Icon(Icons.play_arrow, size: 24, color: Colors.white),
+          ),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: CardGlass(
+              borderRadius: 100,
+              borderSize: 0.3,
+              padding: const .all(2),
+              child: const Icon(
+                Icons.play_arrow,
+                size: 24,
+                color: Colors.white,
+              ),
+            ),
           ),
         ],
       ),
