@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:game_tv/core/constants/app_routes.dart';
 import 'package:game_tv/features/auth/views/auth_screen.dart';
+import 'package:game_tv/features/game_content/views/game_content_screen.dart';
 import 'package:game_tv/features/home/views/home_screen.dart';
+import 'package:game_tv/features/upcoming_releases/views/upcoming_releases_screen.dart';
 import 'package:go_router/go_router.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -40,28 +42,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.auth,
         builder: (context, state) => const AuthScreen(),
       ),
-      // GoRoute(
-      //   path: AppRoutes.home,
-      //   pageBuilder: (context, state) => TileTransitionPage(
-      //     key: state.pageKey,
-      //     child: const HomePage(),
-      //     duration: const Duration(milliseconds: 600),
-      //   ),
-      // ),
-      // GoRoute(
-      //   name: AppRoutes.addDetailsCar,
-      //   path: '${AppRoutes.addDetailsCar}/:image/:name',
-      //   pageBuilder: (context, state) {
-      //     final String? image = state.pathParameters['image'];
-      //     final String? name = state.pathParameters['name'];
-      //
-      //     return TileTransitionPage(
-      //       key: state.pageKey,
-      //       child: AddDetailsCar(image: image, name: name),
-      //       duration: const Duration(milliseconds: 600),
-      //     );
-      //   },
-      // ),
+      GoRoute(
+        path: AppRoutes.upcomingReleases,
+        builder: (context, state) => const UpcomingReleasesScreen(),
+      ),
+      GoRoute(
+        path: "${AppRoutes.gameContent}/:id",
+        builder: (context, state) {
+          final String? id = state.pathParameters['id'];
+
+          return GameContentScreen(id: id);
+        },
+      ),
       // GoRoute(
       //   path: AppRoutes.selectImageCar,
       //   pageBuilder: (context, state) => TileTransitionPage(
