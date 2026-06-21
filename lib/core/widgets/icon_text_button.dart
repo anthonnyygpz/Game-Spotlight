@@ -2,18 +2,24 @@ import 'package:flutter/material.dart';
 
 class IconTextButton extends StatelessWidget {
   final Widget text;
-  final Widget icon;
+  final Widget? icon;
   final Color backgroundColor;
   final Color focusedColor;
   final void Function()? onPressed;
+  final MainAxisAlignment mainAxisAlignment;
+  final CrossAxisAlignment crossaxisalignment;
+  final MainAxisSize mainAxisSize;
 
   const IconTextButton({
     super.key,
     required this.text,
-    required this.icon,
+    this.icon,
     this.backgroundColor = const Color(0xFF050812),
     this.focusedColor = Colors.deepPurple, // Resalte visual para la TV
     required this.onPressed,
+    this.mainAxisAlignment = MainAxisAlignment.start,
+    this.crossaxisalignment = CrossAxisAlignment.start,
+    this.mainAxisSize = MainAxisSize.min,
   });
 
   @override
@@ -29,12 +35,6 @@ class IconTextButton extends StatelessWidget {
           }
           return backgroundColor;
         }),
-        // elevation: WidgetStateProperty.resolveWith<double>((
-        //   Set<WidgetState> states,
-        // ) {
-        //   if (states.contains(WidgetState.focused)) return 5.0;
-        //   return 2.0;
-        // }),
         alignment: Alignment.centerLeft,
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
@@ -42,9 +42,11 @@ class IconTextButton extends StatelessWidget {
         minimumSize: WidgetStateProperty.all(const Size(150, 40)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: mainAxisSize,
+        mainAxisAlignment: mainAxisAlignment,
+        crossAxisAlignment: crossaxisalignment,
         children: [
-          icon,
+          icon ?? SizedBox.shrink(),
           const SizedBox(width: 10),
           Flexible(child: text),
         ],
