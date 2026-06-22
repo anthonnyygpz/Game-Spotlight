@@ -8,6 +8,7 @@ class GameItem {
   final Color gradientEnd;
   final String? badge;
   final String? date;
+  final String category;
 
   const GameItem({
     required this.id,
@@ -17,5 +18,6 @@ class GameItem {
     required this.gradientEnd,
     this.badge,
     this.date,
+    required this.category,
   });
 }
