@@ -24,6 +24,7 @@ class GameCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return AnimatedScale(
       scale: isFocused ? 1.06 : 1.0,
       duration: const Duration(milliseconds: 150),
@@ -34,7 +35,7 @@ class GameCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: isFocused
-              ? Border.all(color: AppColors.focusBorder, width: 2.5)
+              ? Border.all(color: colorScheme.outline, width: 2.5)
               : Border.all(color: Colors.transparent, width: 2.5),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -44,7 +45,7 @@ class GameCard extends StatelessWidget {
           boxShadow: isFocused
               ? [
                   BoxShadow(
-                    color: AppColors.accentGlow,
+                    color: colorScheme.shadow,
                     blurRadius: 16,
                     spreadRadius: 2,
                   ),
@@ -74,24 +75,16 @@ class GameCard extends StatelessWidget {
                 Positioned(
                   top: 10,
                   left: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.accent,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
+                  child: Badge(
+                    label: Text(
                       item.badge!,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1,
                       ),
                     ),
+                    backgroundColor: colorScheme.primary,
                   ),
                 ),
               if (item.badge != null && showBadgeTop)
@@ -127,16 +120,16 @@ class GameCard extends StatelessWidget {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.surface.withValues(alpha: 0.85),
+                      color: colorScheme.surface.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
-                        color: AppColors.accent.withValues(alpha: 0.5),
+                        color: colorScheme.primary.withValues(alpha: 0.5),
                       ),
                     ),
                     child: Text(
                       item.date!,
-                      style: const TextStyle(
-                        color: AppColors.accentBright,
+                      style: TextStyle(
+                        color: colorScheme.secondary,
                         fontSize: 9,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,
@@ -154,6 +147,7 @@ class GameCard extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
+                      // FIX: Remove colors
                       colors: [Colors.transparent, AppColors.cardOverlay],
                     ),
                   ),
@@ -167,8 +161,8 @@ class GameCard extends StatelessWidget {
                           children: [
                             Text(
                               item.title,
-                              style: const TextStyle(
-                                color: AppColors.textPrimary,
+                              style: TextStyle(
+                                color: colorScheme.onPrimary,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 0.5,
@@ -179,8 +173,8 @@ class GameCard extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(
                                 item.subtitle,
-                                style: const TextStyle(
-                                  color: AppColors.textMuted,
+                                style: TextStyle(
+                                  color: colorScheme.onTertiary,
                                   fontSize: 9,
                                   letterSpacing: 1,
                                   fontWeight: FontWeight.w500,
@@ -196,18 +190,20 @@ class GameCard extends StatelessWidget {
                           height: 32,
                           decoration: BoxDecoration(
                             color: isFocused
-                                ? AppColors.accent
-                                : AppColors.surface.withValues(alpha: 0.8),
+                                ? colorScheme.primary
+                                : colorScheme.surface.withValues(alpha: 0.8),
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: isFocused
-                                  ? AppColors.accentBright
-                                  : AppColors.textMuted.withValues(alpha: 0.3),
+                                  ? colorScheme.secondary
+                                  : colorScheme.onTertiary.withValues(
+                                      alpha: 0.3,
+                                    ),
                             ),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.play_arrow_rounded,
-                            color: Colors.white,
+                            color: colorScheme.onPrimary,
                             size: 18,
                           ),
                         ),

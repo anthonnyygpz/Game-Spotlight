@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:game_tv/core/constants/menu_items.dart';
 import 'package:game_tv/core/providers/navigation/navigation_notifier.dart';
-import 'package:game_tv/core/theme/app_colors.dart';
 import 'package:game_tv/core/widgets/sidebar.dart';
 import 'package:go_router/go_router.dart';
 
@@ -24,6 +23,27 @@ class BaseScaffold extends ConsumerStatefulWidget {
 }
 
 class _LayoutState extends ConsumerState<BaseScaffold> {
+  late FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+
+    // Aseguramos el foco un milisegundo después de renderizar la pantalla
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _focusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
   KeyEventResult _handleKey(KeyEvent event) {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
@@ -52,7 +72,11 @@ class _LayoutState extends ConsumerState<BaseScaffold> {
     if (key == LogicalKeyboardKey.select || key == LogicalKeyboardKey.enter) {
       if (state.col == -1) {
         controller.syncActiveRoute();
-        context.go(globalNavItems[state.navIndex].route);
+        Future.delayed(Duration.zero, () {
+          if (context.mounted) {
+            context.go(globalNavItems[state.navIndex].route);
+          }
+        });
       } else {
         if (widget.onContentSelect != null) {
           widget.onContentSelect!(state.row, state.col);
@@ -67,11 +91,17 @@ class _LayoutState extends ConsumerState<BaseScaffold> {
   @override
   Widget build(BuildContext context) {
     final navIndex = ref.watch(navigationProvider.select((s) => s.navIndex));
+    final currentRoute = GoRouterState.of(context).uri.toString();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(navigationProvider.notifier).syncWithRoute(currentRoute);
+      }
+    });
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: KeyboardListener(
-        focusNode: FocusNode()..requestFocus(),
+        focusNode: _focusNode,
         autofocus: true,
         onKeyEvent: (event) => _handleKey(event),
         child: Row(

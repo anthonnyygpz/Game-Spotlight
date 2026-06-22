@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:game_tv/core/models/nav_item.dart';
-import 'package:game_tv/core/theme/app_colors.dart';
 
 class NavTile extends StatelessWidget {
   final NavItem item;
@@ -16,23 +15,23 @@ class NavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return GestureDetector(
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.accent : Colors.transparent,
+          color: isSelected ? colorScheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           children: [
             Icon(
               item.icon,
-              // Mantiene el color primario si está enfocado o es la ruta activa
               color: isActive || isSelected
-                  ? AppColors.textPrimary
-                  : AppColors.textMuted,
+                  ? colorScheme.onPrimary
+                  : colorScheme.onTertiary,
               size: 18,
             ),
             const SizedBox(width: 12),
@@ -41,8 +40,8 @@ class NavTile extends StatelessWidget {
                 item.label,
                 style: TextStyle(
                   color: isActive || isSelected
-                      ? AppColors.textPrimary
-                      : AppColors.textSecondary,
+                      ? colorScheme.onPrimary
+                      : colorScheme.onTertiary,
                   fontSize: 11,
                   fontWeight: isActive || isSelected
                       ? FontWeight.w700

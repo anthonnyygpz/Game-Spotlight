@@ -1,24 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:game_tv/core/constants/menu_items.dart';
-import 'package:game_tv/core/theme/app_colors.dart';
 import 'package:game_tv/core/widgets/nav_tile.dart';
 import 'package:go_router/go_router.dart';
 
 class Sidebar extends StatelessWidget {
   final int selectedIndex;
-  // final ValueChanged<int> onSelect;
 
-  const Sidebar({
-    super.key,
-    required this.selectedIndex,
-    // required this.onSelect,
-  });
+  const Sidebar({super.key, required this.selectedIndex});
 
   @override
   Widget build(BuildContext context) {
+    final currentRoute = GoRouterState.of(context).uri.toString();
+
     return Container(
       width: 175,
-      color: AppColors.background,
       padding: const EdgeInsets.symmetric(vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,7 +30,6 @@ class Sidebar extends StatelessWidget {
                     Text(
                       'GAME',
                       style: TextStyle(
-                        color: AppColors.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 2,
@@ -43,11 +37,7 @@ class Sidebar extends StatelessWidget {
                     ),
                     Text(
                       'SPOTLIGHT',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 9,
-                        letterSpacing: 2,
-                      ),
+                      style: TextStyle(fontSize: 9, letterSpacing: 2),
                     ),
                   ],
                 ),
@@ -56,10 +46,6 @@ class Sidebar extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           ...List.generate(globalNavItems.length, (i) {
-            final String currentRoute = GoRouter.of(
-              context,
-            ).routerDelegate.currentConfiguration.uri.toString();
-
             return NavTile(
               item: globalNavItems[i],
               isSelected: i == selectedIndex,
