@@ -12,26 +12,14 @@ const globalNavItems = [
   NavItem(
     icon: Icons.play_circle_rounded,
     label: 'TRAILERS\nEXCLUSIVOS',
-    route: AppRoutes.upcomingReleases,
+    route: AppRoutes.exclusiveTrailers,
   ),
-  NavItem(
-    icon: Icons.sports_esports_rounded,
-    label: 'GÉNEROS',
-    route: AppRoutes.upcomingReleases,
-  ),
-  NavItem(
-    icon: Icons.tv_rounded,
-    label: 'PLATAFORMAS',
-    route: AppRoutes.upcomingReleases,
-  ),
-  NavItem(
-    icon: Icons.favorite_rounded,
-    label: 'FAVORITOS',
-    route: AppRoutes.upcomingReleases,
-  ),
+  NavItem(icon: Icons.sports_esports_rounded, label: 'GÉNEROS', route: ''),
+  NavItem(icon: Icons.tv_rounded, label: 'PLATAFORMAS', route: ''),
+  NavItem(icon: Icons.favorite_rounded, label: 'FAVORITOS', route: ''),
   NavItem(
     icon: Icons.settings_rounded,
     label: 'AJUSTES',
-    route: AppRoutes.upcomingReleases,
+    route: AppRoutes.settings,
   ),
 ];

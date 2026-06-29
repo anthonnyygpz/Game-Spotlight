@@ -1,6 +1,8 @@
 import 'package:dpad/dpad.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:game_tv/core/l10n/app_localizations.dart';
 import 'package:game_tv/core/routes/router_provider.dart';
 import 'package:game_tv/core/theme/app_theme.dart';
 
@@ -12,6 +14,16 @@ class App extends ConsumerWidget {
     final routerConfig = ref.watch(routerProvider);
 
     return MaterialApp.router(
+      localizationsDelegates: [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: [
+        Locale('en', ''), // Inglés
+        Locale('es', ''), // Español
+      ],
       builder: Dpad.wrap(),
       title: "Game TV",
       debugShowCheckedModeBanner: false,

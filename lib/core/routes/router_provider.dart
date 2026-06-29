@@ -1,124 +1,77 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:game_tv/core/constants/app_routes.dart';
+import 'package:game_tv/core/providers/dio_client.dart';
 import 'package:game_tv/features/auth/views/auth_screen.dart';
+import 'package:game_tv/features/exclusive_trailers/views/exclusive_trailers_screen.dart';
 import 'package:game_tv/features/game_details/views/game_details_screen.dart';
 import 'package:game_tv/features/home/views/home_screen.dart';
+import 'package:game_tv/features/settings/views/settings_screen.dart';
 import 'package:game_tv/features/upcoming_releases/views/upcoming_releases_screen.dart';
 import 'package:go_router/go_router.dart';
 
+const _publicRoutes = {AppRoutes.auth};
+
 final routerProvider = Provider<GoRouter>((ref) {
+  final notifier = _RouterNotifier(ref);
+
   return GoRouter(
-    initialLocation: AppRoutes.home,
-    // refreshListenable: _AuthNotifierListenable(ref),
-    // redirect: (context, state) {
-    //   final authState = ref.read(authProvider);
-    //   final location = state.matchedLocation;
-    //
-    //   final isOnSplash = location == AppRoutes.splash;
-    //   final isOnAuth = location == AppRoutes.auth;
-    //
-    //   // 1. Manejar usuarios autenticados
-    //   if (authState.isAuthenticated) {
-    //     // Si está en login, register o splash, mandarlo al home
-    //     if (isOnAuth || isOnSplash) return AppRoutes.home;
-    //     // En cualquier otro caso, permitir navegación
-    //     return null;
-    //   }
-    //
-    //   // 2. Manejar usuarios NO autenticados o con correo pendiente
-    //   if (authState.isUnauthenticated || authState.isEmailNotConfirmed) {
-    //     // Si intenta ir a una ruta protegida (que no sea splash o auth), mandarlo al login
-    //     if (!isOnSplash && !isOnAuth) return AppRoutes.auth;
-    //   }
-    //
-    //   return null;
-    // },
+    initialLocation: AppRoutes.auth,
+    refreshListenable: notifier,
+    redirect: (context, state) {
+      final token = ref.read(tokenProvider);
+      final isAuthenticated = token != null && token.isNotEmpty;
+      final isOnPublicRoute = _publicRoutes.contains(state.matchedLocation);
+
+      // Sin sesión intentando entrar a ruta protegida → auth
+      if (!isAuthenticated && !isOnPublicRoute) return AppRoutes.auth;
+
+      // Con sesión intentando entrar a auth → home
+      if (isAuthenticated && isOnPublicRoute) return AppRoutes.home;
+
+      // Sin redirección necesaria
+      return null;
+    },
     routes: [
-      GoRoute(
-        path: AppRoutes.home,
-        builder: (context, state) => const HomeScreen(),
-      ),
       GoRoute(
         path: AppRoutes.auth,
         builder: (context, state) => const AuthScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.home,
+        builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
         path: AppRoutes.upcomingReleases,
         builder: (context, state) => const UpcomingReleasesScreen(),
       ),
       GoRoute(
-        path: "${AppRoutes.gameDetails}/:id",
+        path: AppRoutes.exclusiveTrailers,
+        builder: (context, state) => const ExclusiveTrailersScreen(),
+      ),
+      GoRoute(
+        path: '${AppRoutes.gameDetails}/:id',
         builder: (context, state) {
-          final String? id = state.pathParameters['id'];
-
+          final id = state.pathParameters['id'];
           return GameDetailsScreen(id: id);
         },
       ),
-      // GoRoute(
-      //   path: AppRoutes.selectImageCar,
-      //   pageBuilder: (context, state) => TileTransitionPage(
-      //     key: state.pageKey,
-      //     child: SelectImageCar(),
-      //     duration: const Duration(milliseconds: 600),
-      //   ),
-      // ),
-      // GoRoute(
-      //   path: AppRoutes.witnesses,
-      //   pageBuilder: (context, state) => TileTransitionPage(
-      //     key: state.pageKey,
-      //     child: const WitnessesPage(),
-      //     duration: const Duration(milliseconds: 600),
-      //   ),
-      // ),
-      // GoRoute(
-      //   path: AppRoutes.profile,
-      //   pageBuilder: (context, state) => TileTransitionPage(
-      //     key: state.pageKey,
-      //     child: const ProfilePage(),
-      //     duration: const Duration(milliseconds: 600),
-      //   ),
-      // ),
-      // GoRoute(
-      //   name: AppRoutes.witnessDescription,
-      //   path:
-      //       '${AppRoutes.witnessDescription}/:name/:image/:description/:description2',
-      //   pageBuilder: (context, state) {
-      //     final String? name = state.pathParameters['name'];
-      //     final String? image = state.pathParameters['image'];
-      //     final String? description = state.pathParameters['description'];
-      //     final String? description2 = state.pathParameters['description2'];
-      //
-      //     return TileTransitionPage(
-      //       key: state.pageKey,
-      //       child: WitnessDescriptionPage(
-      //         name: name,
-      //         image: image,
-      //         description: description,
-      //         description2: description2,
-      //       ),
-      //       duration: const Duration(milliseconds: 600),
-      //     );
-      //   },
-      // ),
-      // GoRoute(
-      //   path: AppRoutes.myAutoInfo,
-      //   pageBuilder: (context, state) => TileTransitionPage(
-      //     key: state.pageKey,
-      //     child: const MyAutoInfoPage(),
-      //     duration: const Duration(milliseconds: 600),
-      //   ),
-      // ),
+      GoRoute(
+        path: AppRoutes.settings,
+        builder: (context, state) => const SettingsScreen(),
+      ),
     ],
   );
 });
 
-// class _AuthNotifierListenable extends ChangeNotifier {
-//   _AuthNotifierListenable(Ref ref) {
-//     // Cada vez que authProvider cambie, notifica a GoRouter
-//     ref.listen<AuthState>(authProvider, (previous, next) {
-//       if (previous?.status != next.status) {
-//         notifyListeners();
-//       }
-//     });
-//   }
-// }
+// ─── Notifier ─────────────────────────────────────────────────────────────────
+
+/// Escucha cambios en [tokenProvider] y notifica al router para
+/// que re-evalúe el redirect automáticamente al login, register o logout.
+class _RouterNotifier extends ChangeNotifier {
+  _RouterNotifier(Ref ref) {
+    ref.listen<String?>(tokenProvider, (previous, next) {
+      if (previous != next) notifyListeners();
+    });
+  }
+}

@@ -1,38 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:game_tv/core/constants/app_constants.dart';
 import 'package:game_tv/core/constants/menu_items.dart';
 import 'package:game_tv/core/providers/navigation/navigation_state.dart';
 
 class NavigationNotifier extends Notifier<NavigationState> {
-  final ScrollController mainScroll = ScrollController();
-  final List<ScrollController> rowScrolls = List.generate(
-    5,
-    (_) => ScrollController(),
-  );
+  ScrollController? _activeMainScroll;
+  List<ScrollController> _activeRowScrolls = [];
 
   final Map<int, int> _savedCol = {};
 
-  static const double _cardWidth = 222.0;
-  static const double _rowHeight = 185.0;
-  static const double _heroHeight = 320.0;
+  // Parámetros dinámicos de la topología actual
+  double _cardWidth = AppConstants.cardScrollExtent;
+  double _rowHeight = 185.0;
+  double _heroHeight = 320.0;
+  bool _hasHero = true;
 
   @override
   NavigationState build() {
-    ref.onDispose(() {
-      mainScroll.dispose();
-      for (final c in rowScrolls) {
-        c.dispose();
-      }
-    });
     return NavigationState();
+  }
+
+  // Protocolo de inyección táctica dinámico
+  void attachControllers(
+    ScrollController main,
+    List<ScrollController> rows, {
+    bool hasHero = true,
+    double rowHeight = 185.0,
+    double heroHeight = 320.0,
+  }) {
+    _activeMainScroll = main;
+    _activeRowScrolls = rows;
+    _hasHero = hasHero;
+    _rowHeight = rowHeight;
+    _heroHeight = heroHeight;
   }
 
   void moveRow(int delta, List<int> rowItemCounts) {
     if (state.col == -1) {
       final newIndex = (state.navIndex + delta).clamp(
         0,
-        6,
-      ); // Asegure su _navItemsLength
+        globalNavItems.length - 1,
+      );
       if (newIndex != state.navIndex) {
         state = state.copyWith(navIndex: newIndex);
       }
@@ -41,7 +50,6 @@ class NavigationNotifier extends Notifier<NavigationState> {
 
     if (rowItemCounts.isEmpty) return;
 
-    // Recalibración: Asegura que la fila actual sea válida en la nueva pantalla
     final validCurrentRow = state.row.clamp(0, rowItemCounts.length - 1);
     final newRow = (validCurrentRow + delta).clamp(0, rowItemCounts.length - 1);
 
@@ -62,9 +70,7 @@ class NavigationNotifier extends Notifier<NavigationState> {
   void moveCol(int delta, List<int> rowItemCounts) {
     if (rowItemCounts.isEmpty) return;
 
-    // Recalibración: Evita buscar índices inexistentes al entrar desde el Sidebar
     final validRow = state.row.clamp(0, rowItemCounts.length - 1);
-
     final maxCol = rowItemCounts[validRow] - 1;
     final newCol = (state.col + delta).clamp(-1, maxCol);
 
@@ -77,16 +83,12 @@ class NavigationNotifier extends Notifier<NavigationState> {
       newNavIndex = state.activeRouteIndex;
     }
 
-    if (newCol >= 0 && validRow == 0) {
-      newHeroIndex = newCol.clamp(
-        0,
-        maxCol,
-      ); // Asumiendo máximo 3 slides en hero
+    if (_hasHero && newCol >= 0 && validRow == 0) {
+      newHeroIndex = newCol.clamp(0, maxCol);
     }
 
     state = state.copyWith(
-      row:
-          validRow, // Actualizamos la fila si fue corregida por la matriz local
+      row: validRow,
       col: newCol,
       navIndex: newNavIndex,
       heroSlideIndex: newHeroIndex,
@@ -109,25 +111,42 @@ class NavigationNotifier extends Notifier<NavigationState> {
   }
 
   void _scrollToRow(int targetRow) {
-    double offset = targetRow == 0
-        ? 0
-        : _heroHeight + (targetRow - 1) * _rowHeight - 60;
-    mainScroll.animateTo(
-      offset.clamp(0.0, mainScroll.position.maxScrollExtent),
+    if (_activeMainScroll == null || !_activeMainScroll!.hasClients) return;
+
+    double offset = 0.0;
+    if (_hasHero) {
+      offset = targetRow == 0
+          ? 0
+          : _heroHeight + (targetRow - 1) * _rowHeight - 60;
+    } else {
+      // Cálculo de scroll vertical limpio para pantallas sin HeroBanner
+      offset = targetRow * _rowHeight;
+      if (targetRow > 0)
+        offset -= 40; // Margen de respiro para que no toque el borde exacto
+    }
+
+    _activeMainScroll!.animateTo(
+      offset.clamp(0.0, _activeMainScroll!.position.maxScrollExtent),
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
     );
   }
 
   void _scrollRowToCol(int targetRow, int targetCol) {
-    if (targetRow == 0) return;
-    final controller = rowScrolls[targetRow - 1];
+    // Ignorar solo si explícitamente confirmamos que la fila 0 es un HeroBanner
+    if (_hasHero && targetRow == 0) return;
+
+    final index = _hasHero ? targetRow - 1 : targetRow;
+    if (index < 0 || index >= _activeRowScrolls.length) return;
+
+    final controller = _activeRowScrolls[index];
     if (!controller.hasClients) return;
 
     final targetOffset = (targetCol * _cardWidth - 20.0).clamp(
       0.0,
       controller.position.maxScrollExtent,
     );
+
     controller.animateTo(
       targetOffset,
       duration: const Duration(milliseconds: 180),
@@ -156,12 +175,10 @@ class NavigationNotifier extends Notifier<NavigationState> {
         col: 0,
       );
 
-      // Protocolo de restauración física de scroll vertical
       _scrollToRow(0);
-
-      // Limpieza de memoria de navegación horizontal
       _savedCol.clear();
-      for (final controller in rowScrolls) {
+
+      for (final controller in _activeRowScrolls) {
         if (controller.hasClients) {
           controller.jumpTo(0);
         }

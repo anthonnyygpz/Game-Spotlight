@@ -42,6 +42,22 @@ dependencies:
   video_player: ^2.11.1
   material3_expressive_loading_indicator: ^0.1.2
   flutter_drop_cap_text: ^1.0.1
+  dio: ^5.9.2
+  smart_date_formatter: ^2.3.0
+  youtube_player_flutter: ^10.0.1
+  youtube_player_iframe: ^6.0.2
+  youtube_explode_dart: ^3.1.0
+  http: ^1.6.0
+  media_kit: ^1.2.6
+  media_kit_video: ^2.0.1
+  media_kit_libs_video: ^1.0.7
+  flutter_localizations:
+    sdk: flutter
+  invidious: ^0.1.2
+  cached_network_image: ^3.4.1
+  flutter_cache_manager: ^3.4.1
+  shared_preferences: ^2.5.5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -62,6 +78,7 @@ flutter:
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
+  generate: true
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
