@@ -34,13 +34,13 @@ class SpecialTrailerCard extends StatelessWidget {
                   'NUEVO LANZAMIENTO',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.deepPurple.shade200,
+                    color: Theme.of(context).colorScheme.secondary,
                   ),
                 ),
                 Column(
                   children: [
                     Text(
-                      'ECPLIPSE',
+                      'ECLIPSE',
                       style: GoogleFonts.cinzel(
                         textStyle: TextStyle(
                           fontSize: 45,
@@ -102,7 +102,7 @@ class SpecialTrailerCard extends StatelessWidget {
                 ),
 
                 const CardGlass(
-                  borderColor: Colors.deepPurple,
+                  borderColor: Color(0xFF7C3AED),
                   padding: EdgeInsets.all(5.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -126,8 +126,8 @@ class SpecialTrailerCard extends StatelessWidget {
             right: 30,
             child: CardGlass(
               padding: const EdgeInsets.all(5.0),
-              color: Colors.deepPurple.withValues(alpha: 0.1),
-              borderColor: Colors.deepPurple,
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              borderColor: Theme.of(context).colorScheme.primary,
               child: Column(
                 children: [
                   const Text(

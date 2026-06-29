@@ -27,7 +27,7 @@ class GameTrailerCard extends StatelessWidget {
                 'NUEVO',
                 style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
               ),
-              backgroundColor: Colors.deepPurple,
+              backgroundColor: Theme.of(context).colorScheme.primary,
             ),
           ),
 
@@ -43,7 +43,7 @@ class GameTrailerCard extends StatelessWidget {
                   crossAxisAlignment: .center,
                   children: [
                     Text(
-                      'ECPLIPSE',
+                      'ECLIPSE',
                       style: GoogleFonts.cinzel(
                         textStyle: TextStyle(
                           fontSize: 24,

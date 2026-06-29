@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:game_tv/core/widgets/static_button.dart';
-import 'package:game_tv/features/home/models/game_item.dart';
+import 'package:game_tv/features/home/models/unified_game.dart';
 
 class HeroBanner extends StatelessWidget {
-  final int currentIndex;
-  final bool isFocused;
-  final List<GameItem> heroSlides;
-
   const HeroBanner({
     super.key,
     required this.currentIndex,
@@ -14,195 +10,192 @@ class HeroBanner extends StatelessWidget {
     required this.heroSlides,
   });
 
+  final int currentIndex;
+  final bool isFocused;
+  final List<UnifiedGame> heroSlides;
+
+  static const _bannerHeight = 310.0;
+  static const _borderRadius = 16.0;
+  static const _padding = 36.0;
+
+  UnifiedGame get _currentSlide => heroSlides[currentIndex];
+
   @override
   Widget build(BuildContext context) {
-    final slide = heroSlides[currentIndex];
-    final colorScheme = Theme.of(context).colorScheme;
+    final cs = Theme.of(context).colorScheme;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      height: 310,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: isFocused
-            ? Border.all(color: colorScheme.outline, width: 2.5)
-            : Border.all(color: Colors.transparent, width: 2.5),
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [slide.gradientStart, slide.gradientEnd],
-        ),
-      ),
+      height: _bannerHeight,
+      decoration: _buildDecoration(cs),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: .circular(_borderRadius - 2),
         child: Stack(
           children: [
-            Positioned(
-              right: -40,
-              top: -40,
-              child: Container(
-                width: 320,
-                height: 320,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: colorScheme.primary.withValues(alpha: 0.08),
-                ),
-              ),
+            _BackgroundGlow(cs: cs),
+            _BannerContent(slide: _currentSlide, cs: cs),
+            _LaunchDataBadge(slide: _currentSlide, cs: cs),
+            _SlideIndicators(
+              count: heroSlides.length,
+              currentIndex: currentIndex,
+              cs: cs,
             ),
-            Padding(
-              padding: const EdgeInsets.all(36),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (slide.badge != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        slide.badge!,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 12),
-                  Text(
-                    slide.title,
-                    style: TextStyle(
-                      fontSize: 46,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 2,
-                      height: 1.0,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    slide.subtitle,
-                    style: TextStyle(
-                      color: colorScheme.onSecondary,
-                      fontSize: 14,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      StaticButton(
-                        icon: Icons.play_arrow_rounded,
-                        label: 'VER TRÁILER ESPECIAL',
-                        isPrimary: true,
-                      ),
-                      const SizedBox(width: 12),
-                      StaticButton(
-                        icon: Icons.add_rounded,
-                        label: 'MI LISTA',
-                        isPrimary: false,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            if (slide.date != null)
-              Positioned(
-                top: 20,
-                right: 20,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surface.withValues(alpha: 0.9),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: colorScheme.primary, width: 1.5),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'LANZAMIENTO',
-                        style: TextStyle(
-                          color: colorScheme.onTertiary,
-                          fontSize: 8,
-                          letterSpacing: 1.5,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        slide.date!.split(' ')[0],
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      Text(
-                        slide.date!.substring(3),
-                        style: TextStyle(
-                          color: colorScheme.secondary,
-                          fontSize: 10,
-                          letterSpacing: 1,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            // Indicadores de slide
-            Positioned(
-              bottom: 20,
-              left: 36,
-              child: Row(
-                children: List.generate(heroSlides.length, (i) {
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.only(right: 6),
-                    width: i == currentIndex ? 24 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: i == currentIndex
-                          ? colorScheme.primary
-                          : colorScheme.onTertiary,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  );
-                }),
-              ),
-            ),
-            if (isFocused)
-              Positioned(
-                bottom: 16,
-                right: 20,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.chevron_left,
-                      color: colorScheme.onTertiary,
-                      size: 14,
-                    ),
-                    Text(
-                      '  navegar  ',
-                      style: TextStyle(
-                        color: colorScheme.onTertiary,
-                        fontSize: 10,
-                      ),
-                    ),
-                    Icon(
-                      Icons.chevron_right,
-                      color: colorScheme.onTertiary,
-                      size: 14,
-                    ),
-                  ],
-                ),
-              ),
           ],
         ),
+      ),
+    );
+  }
+
+  BoxDecoration _buildDecoration(ColorScheme colorScheme) {
+    final borderColor = isFocused ? colorScheme.outline : Colors.transparent;
+
+    return BoxDecoration(
+      borderRadius: BorderRadius.circular(_borderRadius),
+      image: DecorationImage(
+        image: NetworkImage(_currentSlide.bannerUrl ?? ''),
+        fit: BoxFit.cover,
+      ),
+      border: Border.all(color: borderColor, width: 2.5),
+    );
+  }
+}
+
+class _BackgroundGlow extends StatelessWidget {
+  const _BackgroundGlow({required this.cs});
+
+  final ColorScheme cs;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      right: -40,
+      top: -40,
+      child: Container(
+        width: 320,
+        height: 320,
+        decoration: BoxDecoration(
+          shape: .circle,
+          color: cs.primary.withValues(alpha: 0.08),
+        ),
+      ),
+    );
+  }
+}
+
+class _BannerContent extends StatelessWidget {
+  const _BannerContent({required this.slide, required this.cs});
+
+  final UnifiedGame slide;
+  final ColorScheme cs;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const .all(36),
+      child: Column(
+        crossAxisAlignment: .start,
+        mainAxisAlignment: .center,
+        children: [
+          const SizedBox(height: 12),
+          Text(
+            slide.title,
+            style: const TextStyle(
+              fontSize: 46,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+              height: 1.0,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Editor Desconocido',
+            style: TextStyle(
+              color: cs.onSecondary,
+              fontSize: 14,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Row(
+            children: [
+              StaticButton(
+                icon: Icons.play_arrow_rounded,
+                label: 'VER TRÁILER ESPECIAL',
+                isPrimary: true,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LaunchDataBadge extends StatelessWidget {
+  const _LaunchDataBadge({required this.slide, required this.cs});
+
+  final UnifiedGame slide;
+  final ColorScheme cs;
+
+  @override
+  Widget build(BuildContext context) {
+    final releaseDay = slide.fechaLanzamiento ?? '';
+
+    return Positioned(
+      top: 20,
+      right: 20,
+      child: Container(
+        padding: const .all(12),
+        decoration: BoxDecoration(
+          color: cs.surface.withValues(alpha: 0.9),
+          borderRadius: .circular(10),
+          border: .all(color: cs.primary, width: 1.5),
+        ),
+        child: Column(
+          children: [
+            const Text('LANZAMIENTO'),
+            Text(
+              releaseDay,
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SlideIndicators extends StatelessWidget {
+  const _SlideIndicators({
+    required this.count,
+    required this.currentIndex,
+    required this.cs,
+  });
+
+  final int count;
+  final int currentIndex;
+  final ColorScheme cs;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 20,
+      left: HeroBanner._padding,
+      child: Row(children: List.generate(count, _buildDot)),
+    );
+  }
+
+  Widget _buildDot(int index) {
+    final isActive = index == currentIndex;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      margin: const .only(right: 6),
+      width: isActive ? 24 : 8,
+      height: 8,
+      decoration: BoxDecoration(
+        color: isActive ? cs.primary : cs.onTertiary,
+        borderRadius: .circular(4),
       ),
     );
   }
