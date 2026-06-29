@@ -1,0 +1,566 @@
+-- =============================================================
+--  GAME SPOTLIGHT — MySQL Schema 
+--  Engine: MySQL 8.0+ (requires UUID and JSON support)
+-- =============================================================
+
+-- =============================================================
+--  MODULE 1 — USERS & ACCESS
+-- =============================================================
+
+CREATE TABLE users (
+    user_id         CHAR(36)     NOT NULL DEFAULT (UUID()),
+    name            VARCHAR(100) NOT NULL,
+    email           VARCHAR(150) NOT NULL,
+    password_hash   VARCHAR(255) NOT NULL,
+    registered_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_login      TIMESTAMP    NULL,
+    active          BOOLEAN      NOT NULL DEFAULT TRUE,
+    avatar_url      VARCHAR(255) NULL,
+    country         VARCHAR(100) NULL,
+
+    CONSTRAINT pk_users          PRIMARY KEY (user_id),
+    CONSTRAINT uq_users_email    UNIQUE (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_users_active  ON users (active);
+CREATE INDEX idx_users_country ON users (country);
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE roles (
+    role_id     CHAR(36)    NOT NULL DEFAULT (UUID()),
+    name        VARCHAR(50) NOT NULL,
+    description TEXT        NULL,
+
+    CONSTRAINT pk_roles      PRIMARY KEY (role_id),
+    CONSTRAINT uq_roles_name UNIQUE (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE user_roles (
+    id          CHAR(36)   NOT NULL DEFAULT (UUID()),
+    user_id     CHAR(36)   NOT NULL,
+    role_id     CHAR(36)   NOT NULL,
+    assigned_at TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_user_roles     PRIMARY KEY (id),
+    CONSTRAINT uq_user_role      UNIQUE (user_id, role_id),
+    CONSTRAINT fk_ur_user        FOREIGN KEY (user_id) REFERENCES users (user_id)
+                                   ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_ur_role        FOREIGN KEY (role_id) REFERENCES roles (role_id)
+                                   ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_ur_user ON user_roles (user_id);
+CREATE INDEX idx_ur_role ON user_roles (role_id);
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE sessions (
+    session_id  CHAR(36)     NOT NULL DEFAULT (UUID()),
+    user_id     CHAR(36)     NOT NULL,
+    token       VARCHAR(255) NOT NULL,
+    ip_address  VARCHAR(45)  NULL,
+    user_agent  TEXT         NULL,
+    started_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ended_at    TIMESTAMP    NULL,
+    active      BOOLEAN      NOT NULL DEFAULT TRUE,
+
+    CONSTRAINT pk_sessions       PRIMARY KEY (session_id),
+    CONSTRAINT uq_sessions_token UNIQUE (token),
+    CONSTRAINT fk_ses_user       FOREIGN KEY (user_id) REFERENCES users (user_id)
+                                   ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_ses_user   ON sessions (user_id);
+CREATE INDEX idx_ses_active ON sessions (active);
+
+
+-- =============================================================
+--  MODULE 2 — CATALOG
+-- =============================================================
+
+CREATE TABLE languages (
+    language_id CHAR(36)     NOT NULL DEFAULT (UUID()),
+    code        VARCHAR(10)  NOT NULL,
+    name        VARCHAR(100) NOT NULL,
+    flag_url    VARCHAR(255) NULL,
+    active      BOOLEAN      NOT NULL DEFAULT TRUE,
+
+    CONSTRAINT pk_languages      PRIMARY KEY (language_id),
+    CONSTRAINT uq_languages_code UNIQUE (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE user_settings (
+    settings_id          CHAR(36)    NOT NULL DEFAULT (UUID()),
+    user_id              CHAR(36)    NOT NULL,
+    language_id          CHAR(36)    NULL,
+    theme                VARCHAR(20) NOT NULL DEFAULT 'light',
+    email_notifications  BOOLEAN     NOT NULL DEFAULT TRUE,
+    push_notifications   BOOLEAN     NOT NULL DEFAULT TRUE,
+    profile_privacy      VARCHAR(20) NOT NULL DEFAULT 'public',
+    updated_at           TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
+                                     ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_user_settings      PRIMARY KEY (settings_id),
+    CONSTRAINT uq_user_settings_user UNIQUE (user_id),
+    CONSTRAINT fk_us_user            FOREIGN KEY (user_id)     REFERENCES users     (user_id)
+                                       ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_us_language        FOREIGN KEY (language_id) REFERENCES languages (language_id)
+                                       ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT chk_us_theme          CHECK (theme IN ('light', 'dark', 'system')),
+    CONSTRAINT chk_us_privacy        CHECK (profile_privacy IN ('public', 'friends', 'private'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE genres (
+    genre_id    CHAR(36)     NOT NULL DEFAULT (UUID()),
+    name        VARCHAR(100) NOT NULL,
+    description TEXT         NULL,
+    icon_url    VARCHAR(255) NULL,
+
+    CONSTRAINT pk_genres      PRIMARY KEY (genre_id),
+    CONSTRAINT uq_genres_name UNIQUE (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE platforms (
+    platform_id CHAR(36)     NOT NULL DEFAULT (UUID()),
+    name        VARCHAR(100) NOT NULL,
+    type        VARCHAR(50)  NULL,
+    icon_url    VARCHAR(255) NULL,
+
+    CONSTRAINT pk_platforms      PRIMARY KEY (platform_id),
+    CONSTRAINT uq_platforms_name UNIQUE (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE games (
+    game_id          CHAR(36)     NOT NULL DEFAULT (UUID()),
+    title            VARCHAR(200) NOT NULL,
+    slug             VARCHAR(200) NOT NULL,
+    description      TEXT         NULL,
+    release_date     DATE         NULL,
+    developer        VARCHAR(150) NULL,
+    publisher        VARCHAR(150) NULL,
+    cover_image      VARCHAR(255) NULL,
+    banner_url       VARCHAR(255) NULL,
+    status           VARCHAR(20)  NOT NULL DEFAULT 'active',
+    featured         BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                                  ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_games        PRIMARY KEY (game_id),
+    CONSTRAINT uq_games_slug   UNIQUE (slug),
+    CONSTRAINT chk_games_status CHECK (status IN ('active', 'inactive', 'upcoming', 'discontinued'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_games_featured     ON games (featured);
+CREATE INDEX idx_games_status       ON games (status);
+CREATE INDEX idx_games_release_date ON games (release_date);
+CREATE FULLTEXT INDEX ft_games_search ON games (title, description, developer);
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE game_genres (
+    id       CHAR(36) NOT NULL DEFAULT (UUID()),
+    game_id  CHAR(36) NOT NULL,
+    genre_id CHAR(36) NOT NULL,
+
+    CONSTRAINT pk_game_genres   PRIMARY KEY (id),
+    CONSTRAINT uq_game_genre    UNIQUE (game_id, genre_id),
+    CONSTRAINT fk_gg_game       FOREIGN KEY (game_id)  REFERENCES games  (game_id)
+                                  ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_gg_genre      FOREIGN KEY (genre_id) REFERENCES genres (genre_id)
+                                  ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_gg_game  ON game_genres (game_id);
+CREATE INDEX idx_gg_genre ON game_genres (genre_id);
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE game_platforms (
+    id          CHAR(36) NOT NULL DEFAULT (UUID()),
+    game_id     CHAR(36) NOT NULL,
+    platform_id CHAR(36) NOT NULL,
+
+    CONSTRAINT pk_game_platforms   PRIMARY KEY (id),
+    CONSTRAINT uq_game_platform    UNIQUE (game_id, platform_id),
+    CONSTRAINT fk_gp_game          FOREIGN KEY (game_id)     REFERENCES games     (game_id)
+                                     ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_gp_platform      FOREIGN KEY (platform_id) REFERENCES platforms (platform_id)
+                                     ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_gp_game     ON game_platforms (game_id);
+CREATE INDEX idx_gp_platform ON game_platforms (platform_id);
+
+
+-- =============================================================
+--  MODULE 3 — MULTIMEDIA
+-- =============================================================
+
+CREATE TABLE trailers (
+    trailer_id  CHAR(36)     NOT NULL DEFAULT (UUID()),
+    game_id     CHAR(36)     NOT NULL,
+    title       VARCHAR(200) NOT NULL,
+    type        VARCHAR(50)  NOT NULL DEFAULT 'official',
+    video_url   VARCHAR(255) NOT NULL,
+    poster_url  VARCHAR(255) NULL,
+    sort_order  SMALLINT     NOT NULL DEFAULT 0,
+    created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_trailers    PRIMARY KEY (trailer_id),
+    CONSTRAINT fk_tr_game     FOREIGN KEY (game_id) REFERENCES games (game_id)
+                                ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT chk_tr_type    CHECK (type IN ('official', 'teaser', 'gameplay', 'cinematic', 'launch', 'other'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_tr_game  ON trailers (game_id);
+CREATE INDEX idx_tr_order ON trailers (game_id, sort_order);
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE categories (
+    category_id CHAR(36)     NOT NULL DEFAULT (UUID()),
+    name        VARCHAR(100) NOT NULL,
+
+    CONSTRAINT pk_categories      PRIMARY KEY (category_id),
+    CONSTRAINT uq_categories_name UNIQUE (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE trailer_categories (
+    id          CHAR(36) NOT NULL DEFAULT (UUID()),
+    trailer_id  CHAR(36) NOT NULL,
+    category_id CHAR(36) NOT NULL,
+
+    CONSTRAINT pk_trailer_categories PRIMARY KEY (id),
+    CONSTRAINT uq_trailer_category   UNIQUE (trailer_id, category_id),
+    CONSTRAINT fk_tc_trailer         FOREIGN KEY (trailer_id)  REFERENCES trailers   (trailer_id)
+                                       ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_tc_category        FOREIGN KEY (category_id) REFERENCES categories (category_id)
+                                       ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_tc_trailer  ON trailer_categories (trailer_id);
+CREATE INDEX idx_tc_category ON trailer_categories (category_id);
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE news (
+    news_id       CHAR(36)     NOT NULL DEFAULT (UUID()),
+    title         VARCHAR(200) NOT NULL,
+    slug          VARCHAR(200) NOT NULL,
+    summary       TEXT         NULL,
+    content       LONGTEXT     NOT NULL,
+    cover_image   VARCHAR(255) NULL,
+    published_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    author_id     CHAR(36)     NULL,
+    featured      BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+                               ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_news          PRIMARY KEY (news_id),
+    CONSTRAINT uq_news_slug     UNIQUE (slug),
+    CONSTRAINT fk_news_author   FOREIGN KEY (author_id) REFERENCES users (user_id)
+                                  ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_news_published ON news (published_at DESC);
+CREATE INDEX idx_news_featured  ON news (featured);
+CREATE INDEX idx_news_author    ON news (author_id);
+CREATE FULLTEXT INDEX ft_news_search ON news (title, summary, content);
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE news_images (
+    id          CHAR(36)     NOT NULL DEFAULT (UUID()),
+    news_id     CHAR(36)     NOT NULL,
+    image_url   VARCHAR(255) NOT NULL,
+    sort_order  SMALLINT     NOT NULL DEFAULT 0,
+    caption     VARCHAR(255) NULL,
+
+    CONSTRAINT pk_news_images PRIMARY KEY (id),
+    CONSTRAINT fk_ni_news     FOREIGN KEY (news_id) REFERENCES news (news_id)
+                                ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_ni_news ON news_images (news_id, sort_order);
+
+
+-- =============================================================
+--  MODULE 4 — RELEASES & USER ACTIVITY
+-- =============================================================
+
+CREATE TABLE upcoming_releases (
+    release_id      CHAR(36)     NOT NULL DEFAULT (UUID()),
+    game_id         CHAR(36)     NOT NULL,
+    release_date    DATE         NULL,
+    release_window  VARCHAR(100) NULL,
+    description     TEXT         NULL,
+    banner_url      VARCHAR(255) NULL,
+    featured        BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_upcoming_releases PRIMARY KEY (release_id),
+    CONSTRAINT fk_ur_game           FOREIGN KEY (game_id) REFERENCES games (game_id)
+                                      ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_ur_game         ON upcoming_releases (game_id);
+CREATE INDEX idx_ur_release_date ON upcoming_releases (release_date);
+CREATE INDEX idx_ur_featured     ON upcoming_releases (featured);
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE favorites (
+    favorite_id CHAR(36)   NOT NULL DEFAULT (UUID()),
+    user_id     CHAR(36)   NOT NULL,
+    game_id     CHAR(36)   NOT NULL,
+    added_at    TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_favorites        PRIMARY KEY (favorite_id),
+    CONSTRAINT uq_favorite         UNIQUE (user_id, game_id),
+    CONSTRAINT fk_fav_user         FOREIGN KEY (user_id) REFERENCES users (user_id)
+                                     ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_fav_game         FOREIGN KEY (game_id) REFERENCES games (game_id)
+                                     ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_fav_user ON favorites (user_id);
+CREATE INDEX idx_fav_game ON favorites (game_id);
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE downloads (
+    download_id   CHAR(36)   NOT NULL DEFAULT (UUID()),
+    user_id       CHAR(36)   NOT NULL,
+    game_id       CHAR(36)   NOT NULL,
+    platform_id   CHAR(36)   NULL,
+    downloaded_at TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_downloads        PRIMARY KEY (download_id),
+    CONSTRAINT uq_download         UNIQUE (user_id, game_id, platform_id),
+    CONSTRAINT fk_dl_user          FOREIGN KEY (user_id)     REFERENCES users     (user_id)
+                                     ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_dl_game          FOREIGN KEY (game_id)     REFERENCES games     (game_id)
+                                     ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_dl_platform      FOREIGN KEY (platform_id) REFERENCES platforms (platform_id)
+                                     ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_dl_user ON downloads (user_id);
+CREATE INDEX idx_dl_game ON downloads (game_id);
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE notifications (
+    notification_id CHAR(36)     NOT NULL DEFAULT (UUID()),
+    user_id         CHAR(36)     NOT NULL,
+    title           VARCHAR(200) NOT NULL,
+    message         TEXT         NOT NULL,
+    type            VARCHAR(50)  NOT NULL DEFAULT 'general',
+    read            BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    read_at         TIMESTAMP    NULL,
+
+    CONSTRAINT pk_notifications  PRIMARY KEY (notification_id),
+    CONSTRAINT fk_noti_user      FOREIGN KEY (user_id) REFERENCES users (user_id)
+                                   ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT chk_noti_type     CHECK (type IN ('general', 'release', 'news', 'system', 'favorite'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_noti_user   ON notifications (user_id);
+CREATE INDEX idx_noti_unread ON notifications (user_id, `read`);
+CREATE INDEX idx_noti_date   ON notifications (created_at DESC);
+
+
+-- -------------------------------------------------------------
+
+CREATE TABLE activity_logs (
+    log_id      CHAR(36)     NOT NULL DEFAULT (UUID()),
+    user_id     CHAR(36)     NULL,
+    action      VARCHAR(100) NOT NULL,
+    entity      VARCHAR(100) NULL,
+    entity_id   CHAR(36)     NULL,
+    details     JSON         NULL,
+    ip_address  VARCHAR(45)  NULL,
+    created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_activity_logs PRIMARY KEY (log_id),
+    CONSTRAINT fk_log_user      FOREIGN KEY (user_id) REFERENCES users (user_id)
+                                  ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_log_user   ON activity_logs (user_id, created_at);
+CREATE INDEX idx_log_entity ON activity_logs (entity, entity_id);
+CREATE INDEX idx_log_action ON activity_logs (action);
+CREATE INDEX idx_log_date   ON activity_logs (created_at DESC);
+
+
+-- =============================================================
+--  SEED DATA
+-- =============================================================
+
+-- Roles
+INSERT INTO roles (role_id, name, description) VALUES
+    (UUID(), 'admin',  'Full system access'),
+    (UUID(), 'editor', 'Can create and edit content'),
+    (UUID(), 'viewer', 'Read-only access');
+
+-- Languages
+INSERT INTO languages (language_id, code, name, active) VALUES
+    (UUID(), 'en', 'English',    TRUE),
+    (UUID(), 'es', 'Spanish',    TRUE),
+    (UUID(), 'pt', 'Portuguese', TRUE),
+    (UUID(), 'fr', 'French',     TRUE),
+    (UUID(), 'de', 'German',     TRUE),
+    (UUID(), 'ja', 'Japanese',   TRUE),
+    (UUID(), 'zh', 'Chinese',    TRUE);
+
+-- Genres
+INSERT INTO genres (genre_id, name) VALUES
+    (UUID(), 'Action'),
+    (UUID(), 'Adventure'),
+    (UUID(), 'RPG'),
+    (UUID(), 'Strategy'),
+    (UUID(), 'Sports'),
+    (UUID(), 'Horror'),
+    (UUID(), 'Simulation'),
+    (UUID(), 'Platformer'),
+    (UUID(), 'Fighting'),
+    (UUID(), 'Puzzle'),
+    (UUID(), 'Racing'),
+    (UUID(), 'Shooter'),
+    (UUID(), 'Sandbox'),
+    (UUID(), 'Survival');
+
+-- Platforms
+INSERT INTO platforms (platform_id, name, type) VALUES
+    (UUID(), 'PlayStation 5',   'console'),
+    (UUID(), 'PlayStation 4',   'console'),
+    (UUID(), 'Xbox Series X',   'console'),
+    (UUID(), 'Xbox One',        'console'),
+    (UUID(), 'Nintendo Switch', 'console'),
+    (UUID(), 'PC (Steam)',      'pc'),
+    (UUID(), 'PC (Epic Games)', 'pc'),
+    (UUID(), 'PC (GOG)',        'pc'),
+    (UUID(), 'iOS',             'mobile'),
+    (UUID(), 'Android',         'mobile');
+
+-- Trailer categories
+INSERT INTO categories (category_id, name) VALUES
+    (UUID(), 'Cinematic'),
+    (UUID(), 'Gameplay'),
+    (UUID(), '4K'),
+    (UUID(), 'Multiplayer'),
+    (UUID(), 'Story'),
+    (UUID(), 'DLC'),
+    (UUID(), 'Launch'),
+    (UUID(), 'Reveal');
+
+
+-- =============================================================
+--  VIEWS
+-- =============================================================
+
+-- Full game detail with genres and platforms
+CREATE OR REPLACE VIEW v_games_full AS
+SELECT
+    g.game_id,
+    g.title,
+    g.slug,
+    g.description,
+    g.release_date,
+    g.developer,
+    g.publisher,
+    g.cover_image,
+    g.banner_url,
+    g.status,
+    g.featured,
+    GROUP_CONCAT(DISTINCT ge.name  ORDER BY ge.name  SEPARATOR ', ') AS genres,
+    GROUP_CONCAT(DISTINCT pl.name  ORDER BY pl.name  SEPARATOR ', ') AS platforms,
+    COUNT(DISTINCT t.trailer_id) AS total_trailers,
+    g.created_at
+FROM games g
+LEFT JOIN game_genres    gg ON g.game_id = gg.game_id
+LEFT JOIN genres         ge ON gg.genre_id = ge.genre_id
+LEFT JOIN game_platforms gp ON g.game_id = gp.game_id
+LEFT JOIN platforms      pl ON gp.platform_id = pl.platform_id
+LEFT JOIN trailers       t  ON g.game_id = t.game_id
+WHERE g.status = 'active'
+GROUP BY
+    g.game_id, g.title, g.slug, g.description, g.release_date,
+    g.developer, g.publisher, g.cover_image, g.banner_url,
+    g.status, g.featured, g.created_at;
+
+
+-- Unread notifications count per user
+CREATE OR REPLACE VIEW v_unread_notifications AS
+SELECT
+    n.user_id,
+    u.name AS user_name,
+    COUNT(*) AS total_unread,
+    MAX(n.created_at) AS latest_notification
+FROM notifications n
+JOIN users u ON n.user_id = u.user_id
+WHERE n.read = FALSE
+GROUP BY n.user_id, u.name;
+
+
+-- User favorites with game details
+CREATE OR REPLACE VIEW v_user_favorites AS
+SELECT
+    f.user_id,
+    u.name AS user_name,
+    g.game_id,
+    g.title,
+    g.slug,
+    g.cover_image,
+    g.status,
+    f.added_at,
+    GROUP_CONCAT(DISTINCT ge.name ORDER BY ge.name SEPARATOR ', ') AS genres
+FROM favorites f
+JOIN users           u  ON f.user_id = u.user_id
+JOIN games           g  ON f.game_id = g.game_id
+LEFT JOIN game_genres gg ON g.game_id = gg.game_id
+LEFT JOIN genres      ge ON gg.genre_id = ge.genre_id
+GROUP BY
+    f.user_id, u.name, g.game_id, g.title, g.slug,
+    g.cover_image, g.status, f.added_at;
+
+
+-- =============================================================
+--  END OF SCRIPT
+--  Tables  : 21
+--  FKs     : 22
+--  Indexes : 37
+--  Views   : 3
+-- =============================================================
