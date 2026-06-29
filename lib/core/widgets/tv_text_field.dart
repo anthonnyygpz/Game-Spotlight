@@ -130,7 +130,7 @@ class TvTextFieldStyle {
     return TvTextFieldStyle(
       focusColor: focusColor ?? cs.primary,
       focusBackgroundColor:
-          focusBackgroundColor ?? cs.primary.withOpacity(0.07),
+          focusBackgroundColor ?? cs.primary.withValues(alpha: 0.07),
       focusBorderWidth: focusBorderWidth,
       focusGlowRadius: focusGlowRadius,
       focusGlowOpacity: focusGlowOpacity,
@@ -141,7 +141,7 @@ class TvTextFieldStyle {
       labelColor: labelColor ?? cs.onSurfaceVariant,
       labelFocusColor: labelFocusColor ?? focusColor ?? cs.primary,
       valueColor: valueColor ?? cs.onSurface,
-      hintColor: hintColor ?? cs.onSurfaceVariant.withOpacity(0.6),
+      hintColor: hintColor ?? cs.onSurfaceVariant.withValues(alpha: 0.6),
       iconColor: iconColor ?? cs.onSurfaceVariant,
       iconFocusColor: iconFocusColor ?? focusColor ?? cs.primary,
       dialogBackgroundColor: dialogBackgroundColor ?? cs.surface,
@@ -153,7 +153,7 @@ class TvTextFieldStyle {
           dialogFieldFocusBorderColor ?? focusColor ?? cs.primary,
       dialogFieldTextColor: dialogFieldTextColor ?? cs.onSurface,
       dialogFieldHintColor:
-          dialogFieldHintColor ?? cs.onSurfaceVariant.withOpacity(0.6),
+          dialogFieldHintColor ?? cs.onSurfaceVariant.withValues(alpha: 0.6),
       confirmButtonColor: confirmButtonColor ?? focusColor ?? cs.primary,
       confirmButtonTextColor: confirmButtonTextColor ?? cs.onPrimary,
       cancelButtonBorderColor: cancelButtonBorderColor ?? cs.outline,
@@ -203,6 +203,7 @@ class TvTextField extends StatefulWidget {
     this.maxLength,
     this.autofocus = false,
     this.style,
+    this.isLoading = false,
   });
 
   final String label;
@@ -217,9 +218,8 @@ class TvTextField extends StatefulWidget {
   final Widget? prefixIcon;
   final int? maxLength;
   final bool autofocus;
-
-  /// Colores y estilos del widget. Si es `null` se usan los del [ThemeData].
   final TvTextFieldStyle? style;
+  final bool isLoading;
 
   @override
   State<TvTextField> createState() => _TvTextFieldState();
@@ -230,30 +230,38 @@ class _TvTextFieldState extends State<TvTextField> {
   late final FocusNode _focusNode;
   bool _hasFocus = false;
 
+  static final _kAcceptedKeys = {
+    LogicalKeyboardKey.select,
+    LogicalKeyboardKey.enter,
+    LogicalKeyboardKey.gameButtonA,
+  };
+
   @override
   void initState() {
     super.initState();
     _displayController = widget.controller ?? TextEditingController();
     _focusNode = FocusNode();
-    _focusNode.addListener(_onFocusChanged);
   }
 
   @override
   void dispose() {
-    _focusNode.removeListener(_onFocusChanged);
     _focusNode.dispose();
-    if (widget.controller == null) {
-      _displayController.dispose();
-    }
+    if (widget.controller == null) _displayController.dispose();
     super.dispose();
   }
 
-  void _onFocusChanged() {
-    setState(() => _hasFocus = _focusNode.hasFocus);
+  // ✅ Mismo patrón que TvButton
+  void _onFocusChange(bool hasFocus) => setState(() => _hasFocus = hasFocus);
+
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event, fieldState) {
+    if (event is KeyDownEvent && _kAcceptedKeys.contains(event.logicalKey)) {
+      _openEditDialog(fieldState);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
-  Future<void> _openEditDialog() async {
-    // Resolvemos el style aquí para pasarlo al diálogo.
+  Future<void> _openEditDialog(FormFieldState<String> fieldState) async {
     final resolvedStyle = (widget.style ?? const TvTextFieldStyle()).resolve(
       Theme.of(context),
     );
@@ -276,6 +284,7 @@ class _TvTextFieldState extends State<TvTextField> {
 
     if (result != null) {
       _displayController.text = result;
+      fieldState.didChange(result);
       widget.onChanged?.call(result);
       widget.onSubmitted?.call(result);
     }
@@ -289,114 +298,180 @@ class _TvTextFieldState extends State<TvTextField> {
       Theme.of(context),
     );
 
-    return KeyboardListener(
-      focusNode: FocusNode(skipTraversal: true),
-      onKeyEvent: (event) {
-        if (event is KeyDownEvent &&
-            _focusNode.hasFocus &&
-            (event.logicalKey == LogicalKeyboardKey.enter ||
-                event.logicalKey == LogicalKeyboardKey.select ||
-                event.logicalKey == LogicalKeyboardKey.gameButtonA)) {
-          _openEditDialog();
-        }
-      },
-      child: Focus(
-        focusNode: _focusNode,
-        autofocus: widget.autofocus,
-        child: GestureDetector(
-          onTap: _openEditDialog,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(s.borderRadius),
-              border: Border.all(
-                color: _hasFocus ? s.focusColor! : s.borderColor!,
-                width: _hasFocus ? s.focusBorderWidth : s.borderWidth,
-              ),
-              color: _hasFocus ? s.focusBackgroundColor : s.backgroundColor,
-              boxShadow: _hasFocus
-                  ? [
-                      BoxShadow(
-                        color: s.focusColor!.withOpacity(s.focusGlowOpacity),
-                        blurRadius: s.focusGlowRadius,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                  : [],
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                if (widget.prefixIcon != null) ...[
-                  IconTheme(
-                    data: IconThemeData(
-                      color: _hasFocus ? s.iconFocusColor : s.iconColor,
-                      size: 22,
-                    ),
-                    child: widget.prefixIcon!,
+    // Conexión del widget personalizado al motor de Form
+    return FormField<String>(
+      validator: widget.validator,
+      initialValue: _displayController.text,
+      builder: (FormFieldState<String> fieldState) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Focus(
+              focusNode: _focusNode,
+              autofocus: widget.autofocus,
+              onFocusChange: _onFocusChange,
+              onKeyEvent: (node, event) => _onKeyEvent(node, event, fieldState),
+              child: GestureDetector(
+                onTap: widget.isLoading
+                    ? null
+                    : () => _openEditDialog(fieldState),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  decoration: _buildDecoration(s),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
                   ),
-                  const SizedBox(width: 12),
-                ],
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
+                  child: Row(
+                    // ... (Mantenga todo el contenido interno de su Row EXACTAMENTE igual) ...
                     children: [
-                      Text(
-                        widget.label,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: _hasFocus ? s.labelFocusColor : s.labelColor,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
+                      if (widget.prefixIcon != null) ...[
+                        IconTheme(
+                          data: IconThemeData(
+                            color: _hasFocus ? s.iconFocusColor : s.iconColor,
+                            size: 22,
+                          ),
+                          child: widget.prefixIcon!,
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        child: _FieldContent(
+                          controller: _displayController,
+                          label: widget.label,
+                          hint: widget.hint,
+                          obscureText: widget.obscureText,
+                          hasFocus: _hasFocus,
+                          style: s,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      ValueListenableBuilder(
-                        valueListenable: _displayController,
-                        builder: (context, value, _) {
-                          final hasValue = value.text.isNotEmpty;
-                          final displayText = widget.obscureText && hasValue
-                              ? '•' * value.text.length
-                              : value.text;
-                          return Text(
-                            hasValue
-                                ? displayText
-                                : (widget.hint ?? 'Presiona OK para ingresar'),
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(
-                                  color: hasValue ? s.valueColor : s.hintColor,
+                      const SizedBox(width: 8),
+                      AnimatedOpacity(
+                        opacity: _hasFocus
+                            ? 1.0
+                            : (widget.isLoading ? 0.3 : 0.4),
+                        duration: const Duration(milliseconds: 200),
+                        child: widget.isLoading
+                            ? SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: s.iconColor,
                                 ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          );
-                        },
+                              )
+                            : Icon(
+                                Icons.edit_outlined,
+                                size: 18,
+                                color: _hasFocus
+                                    ? s.iconFocusColor
+                                    : s.iconColor,
+                              ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                AnimatedOpacity(
-                  opacity: _hasFocus ? 1.0 : 0.4,
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(
-                    Icons.edit_outlined,
-                    size: 18,
-                    color: _hasFocus ? s.iconFocusColor : s.iconColor,
+              ),
+            ),
+            // Retroalimentación visual: Renderiza el texto de error si la validación falla
+            if (fieldState.hasError)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0, left: 16.0),
+                child: Text(
+                  fieldState.errorText!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ],
-            ),
-          ),
-        ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  BoxDecoration _buildDecoration(TvTextFieldStyle s) {
+    return BoxDecoration(
+      borderRadius: BorderRadius.circular(s.borderRadius),
+      border: Border.all(
+        color: _hasFocus ? s.focusColor! : s.borderColor!,
+        width: _hasFocus ? s.focusBorderWidth : s.borderWidth,
       ),
+      color: _hasFocus ? s.focusBackgroundColor : s.backgroundColor,
+      boxShadow: _hasFocus
+          ? [
+              BoxShadow(
+                color: s.focusColor!.withValues(alpha: s.focusGlowOpacity),
+                blurRadius: s.focusGlowRadius,
+                spreadRadius: 1,
+              ),
+            ]
+          : [],
     );
   }
 }
 
-// ============================================================================
-// _TvInputDialog — diálogo con el TextFormField real
-// ============================================================================
+// ── Widget privado para el contenido del campo ─────────────────────────────────
+
+class _FieldContent extends StatelessWidget {
+  const _FieldContent({
+    required this.controller,
+    required this.label,
+    required this.hint,
+    required this.obscureText,
+    required this.hasFocus,
+    required this.style,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String? hint;
+  final bool obscureText;
+  final bool hasFocus;
+  final TvTextFieldStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: textTheme.labelSmall?.copyWith(
+            color: hasFocus ? style.labelFocusColor : style.labelColor,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 2),
+        ValueListenableBuilder(
+          valueListenable: controller,
+          builder: (context, value, _) {
+            final hasValue = value.text.isNotEmpty;
+            final displayText = obscureText && hasValue
+                ? '•' * value.text.length
+                : value.text;
+            return Text(
+              hasValue ? displayText : (hint ?? 'Presiona OK para ingresar'),
+              style: textTheme.bodyLarge?.copyWith(
+                color: hasValue ? style.valueColor : style.hintColor,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
 
 class _TvInputDialog extends StatefulWidget {
   const _TvInputDialog({
@@ -413,7 +488,7 @@ class _TvInputDialog extends StatefulWidget {
 
   final String label;
   final String initialValue;
-  final TvTextFieldStyle style; // Ya resuelto con los fallbacks del theme
+  final TvTextFieldStyle style;
   final String? hint;
   final bool obscureText;
   final TextInputType? keyboardType;
@@ -471,7 +546,6 @@ class _TvInputDialogState extends State<_TvInputDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
                 Row(
                   children: [
                     Icon(
@@ -490,8 +564,6 @@ class _TvInputDialogState extends State<_TvInputDialog> {
                   ],
                 ),
                 const SizedBox(height: 24),
-
-                // Campo real de texto (aquí SÍ aparece el teclado)
                 TextFormField(
                   controller: _controller,
                   autofocus: true,
@@ -537,10 +609,7 @@ class _TvInputDialogState extends State<_TvInputDialog> {
                         : null,
                   ),
                 ),
-
                 const SizedBox(height: 28),
-
-                // Botones — navegables por D-pad
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -570,19 +639,13 @@ class _TvInputDialogState extends State<_TvInputDialog> {
   }
 }
 
-// ============================================================================
-// _DialogButton — botón D-pad friendly con colores customizables
-// ============================================================================
-
 class _DialogButton extends StatefulWidget {
   const _DialogButton({
     required this.label,
     required this.onPressed,
     required this.textColor,
     this.outlined = false,
-    // Filled
     this.backgroundColor,
-    // Outlined
     this.borderColor,
     this.focusBorderColor,
   });

@@ -38,8 +38,9 @@ class CustomIconButton extends StatelessWidget {
         iconSize: WidgetStateProperty.resolveWith<double>((
           Set<WidgetState> states,
         ) {
-          if (states.contains(WidgetState.focused))
-            return 32.0; // Ligero aumento de tamaño
+          if (states.contains(WidgetState.focused)) {
+            return 32.0;
+          }
           return 24.0;
         }),
       ),

@@ -42,10 +42,6 @@ class _CustomTextFormFieldState extends State<CustomTextFormField> {
     obscureText = widget.isPassword;
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {

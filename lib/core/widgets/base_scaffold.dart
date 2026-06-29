@@ -7,16 +7,18 @@ import 'package:game_tv/core/widgets/sidebar.dart';
 import 'package:go_router/go_router.dart';
 
 class BaseScaffold extends ConsumerStatefulWidget {
-  final Widget child;
-  final List<int> rowItemCounts;
-  final void Function(int row, int col)? onContentSelect;
-
   const BaseScaffold({
     super.key,
     required this.child,
     required this.rowItemCounts,
     this.onContentSelect,
+    this.keyHandler,
   });
+
+  final Widget child;
+  final List<int> rowItemCounts;
+  final void Function(int row, int col)? onContentSelect;
+  final KeyEventResult Function(KeyEvent event)? keyHandler;
 
   @override
   ConsumerState<BaseScaffold> createState() => _LayoutState();
@@ -29,12 +31,8 @@ class _LayoutState extends ConsumerState<BaseScaffold> {
   void initState() {
     super.initState();
     _focusNode = FocusNode();
-
-    // Aseguramos el foco un milisegundo después de renderizar la pantalla
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _focusNode.requestFocus();
-      }
+      if (mounted) _focusNode.requestFocus();
     });
   }
 
@@ -49,8 +47,15 @@ class _LayoutState extends ConsumerState<BaseScaffold> {
       return KeyEventResult.ignored;
     }
 
+    // 1. Primero el handler externo (Settings, etc.)
+    if (widget.keyHandler != null) {
+      final result = widget.keyHandler!(event);
+      if (result == KeyEventResult.handled) return KeyEventResult.handled;
+    }
+
+    // 2. Fallback: navegación global del sidebar
     final key = event.logicalKey;
-    final state = ref.watch(navigationProvider);
+    final state = ref.read(navigationProvider);
     final controller = ref.read(navigationProvider.notifier);
 
     if (key == LogicalKeyboardKey.arrowDown) {
@@ -78,9 +83,7 @@ class _LayoutState extends ConsumerState<BaseScaffold> {
           }
         });
       } else {
-        if (widget.onContentSelect != null) {
-          widget.onContentSelect!(state.row, state.col);
-        }
+        widget.onContentSelect?.call(state.row, state.col);
       }
       return KeyEventResult.handled;
     }
@@ -103,13 +106,20 @@ class _LayoutState extends ConsumerState<BaseScaffold> {
       body: KeyboardListener(
         focusNode: _focusNode,
         autofocus: true,
-        onKeyEvent: (event) => _handleKey(event),
-        child: Row(
+        onKeyEvent: _handleKey,
+        child: Stack(
           children: [
-            // Sidebar
-            RepaintBoundary(child: Sidebar(selectedIndex: navIndex)),
-            // Contenido
-            Expanded(child: widget.child),
+            Positioned.fill(left: 175, child: widget.child),
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 175,
+              child: Container(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: RepaintBoundary(child: Sidebar(selectedIndex: navIndex)),
+              ),
+            ),
           ],
         ),
       ),
