@@ -1,0 +1,5 @@
+{
+  "@@locale": "en",
+  "errorConnection": "Unable to connect to the server. Please check your internet.",
+  "errorInvalidLogin": "The email or password provided is incorrect."
+}

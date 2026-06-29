@@ -1,0 +1,12 @@
+{
+  "@@locale": "es",
+  "errorConnection": "No se pudo conectar al servidor. Comprueba tu internet.",
+  "errorInvalidLogin": "El correo o la contraseña proporcionados son incorrectos.",
+
+  " @_YOUTUBE_EXPLODE": {},
+  "errorVideoUnavailable": "Este video no está disponible o fue eliminado.",
+  "errorVideoUnplayable": "No se pueden extraer los flujos de reproducción de este video.",
+  "errorYoutubeBroken": "YouTube ha cambiado sus parámetros de red. Intenta actualizar la app.",
+  "errorNetwork": "Problema de conexión a internet.",
+  "errorUnknown": "Error inesperado al cargar el video."
+}
